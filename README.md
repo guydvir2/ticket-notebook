@@ -1,1 +1,41 @@
-# ticket-notebook
+# Ticket Notebook
+
+A logbook for home fixes. Python standard library only, no packages to install.
+
+## Run it
+
+    python3 app.py
+
+Then open `http://<this-machine-ip>:8080` from any device on your home network.
+
+On the iPhone: open that address in Safari, tap Share, then **Add to Home Screen**.
+It opens without the Safari bars and uses its own icon.
+
+## Using it
+
+- Each card shows its serial number, section, opening date, title and the first
+  line of the problem. The serial is given on saving and never changes, so
+  numbers have gaps once you delete a ticket.
+- Search also matches a serial, so `#007` finds that ticket.
+- The three counts at the top filter by status. Tap one, tap again to clear.
+- Tap a ticket to read it. Change status straight from that screen.
+- **Copy for chat** puts the ticket back in template form, ready to paste into a chat.
+- **Paste from chat** reads a filled template and opens it for review before saving.
+- Wrap paths and commands in `backticks` to have them shown as code.
+
+## Data
+
+Everything lives in `tickets.db` next to `app.py`. Back that file up.
+Copy it elsewhere to move the app.
+
+## Keep it at home
+
+There is no login. Use it on your home network only, never expose the port to
+the internet, and do not store passwords or keys in tickets.
+
+## Start at boot (Debian or Ubuntu, files in /opt/ticket-notebook)
+
+    cp ticket-notebook.service /etc/systemd/system/
+    systemctl daemon-reload && systemctl enable --now ticket-notebook
+
+Change the port with `TN_PORT`, the database path with `TN_DB`.

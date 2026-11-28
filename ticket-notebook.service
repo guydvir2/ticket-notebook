@@ -1,0 +1,9 @@
+[Unit]
+Description=Ticket Notebook
+After=network.target
+[Service]
+WorkingDirectory=/opt/ticket-notebook
+ExecStart=/usr/bin/python3 /opt/ticket-notebook/app.py
+Restart=on-failure
+[Install]
+WantedBy=multi-user.target
