@@ -7,15 +7,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tickets">
 <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme:light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#1C1C1E" media="(prefers-color-scheme:dark)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <title>Tickets</title>
 <style>
 :root{--bg:#F2F2F7;--card:#FFF;--ink:#111;--muted:#6C6C70;--line:#DCDCE1;--search:#E3E3E9;
   --accent:#0066D6;--red:#E5383B;--yellow:#D98E04;--green:#248A3D}
-@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1C1C1E;--ink:#F2F2F7;--muted:#98989F;
-  --line:#38383A;--search:#1C1C1E;--accent:#409CFF;--red:#FF6961;--yellow:#FFB340;--green:#4CD964}}
+@media (prefers-color-scheme:dark){:root{--bg:#1C1C1E;--card:#2A2A2D;--ink:#EDEDF0;--muted:#9A9AA0;
+  --line:#3A3A3D;--search:#2A2A2D;--accent:#409CFF;--red:#FF6961;--yellow:#FFB340;--green:#4CD964}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
 body{margin:0 auto;max-width:640px;background:var(--bg);color:var(--ink);
@@ -34,11 +34,11 @@ h1{margin:0;font-size:34px;font-weight:700}
 .chip{flex:none;padding:6px 14px;border-radius:999px;background:var(--card);font-size:14px}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg)}
 .head{margin:18px 14px 6px;font-size:13px;color:var(--muted)}
-.group{background:var(--card);border-radius:12px;overflow:hidden}
-.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 14px}
-.row+.row{border-top:1px solid var(--line)}
-.row:active{background:var(--search)}
-.row>.dot{flex:none;width:10px;height:10px;border-radius:50%;background:currentColor}
+.group{display:flex;flex-direction:column;gap:8px}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;
+  background:var(--card);border-left:4px solid currentColor;border-radius:0}
+.row:active{background:var(--line)}
+.row>.dot{display:none}
 .row .text{flex:1;min-width:0;color:var(--ink)}
 .row h2{margin:0;font-size:17px;font-weight:500;overflow-wrap:anywhere}
 .meta{font-size:13px;color:var(--muted)}
