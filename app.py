@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Ticket Notebook - local web server. Python standard library only."""
-import json, os, sqlite3, datetime, mimetypes, socket
+import json, os, re, sqlite3, datetime, mimetypes, socket, urllib.request, urllib.error
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -9,6 +9,24 @@ PORT = int(os.environ.get("TN_PORT", "8080"))
 FIELDS = ["title", "section", "status", "problem", "cause", "fix", "open"]
 SECTIONS = ["Networking", "HA", "Proxmox"]
 STATUSES = ["red", "yellow", "green"]
+
+
+def load_env():
+    """Read KEY=value lines from .env next to app.py. Real env vars win."""
+    try:
+        with open(os.path.join(BASE, ".env"), encoding="utf-8") as f:
+            for line in f:
+                k, sep, v = line.strip().partition("=")
+                if sep and k and not k.startswith("#"):
+                    os.environ.setdefault(k.strip(), v.strip().strip('"\''))
+    except OSError:
+        pass
+
+
+load_env()
+AI_URL = os.environ.get("TN_AI_URL", "").rstrip("/")
+AI_KEY = os.environ.get("TN_AI_KEY", "")
+AI_MODEL = os.environ.get("TN_AI_MODEL", "FASST")
 STATIC = {"/": "index.html", "/manifest.webmanifest": "manifest.webmanifest",
           "/icon-180.png": "icon-180.png", "/icon-512.png": "icon-512.png"}
 
@@ -49,6 +67,60 @@ def clean(d):
         raise ValueError("Choose a section")
     if t["status"] not in STATUSES:
         raise ValueError("Choose a status")
+    return t
+
+
+PROMPT = """You turn raw notes about a home-lab or smart-home problem into one ticket.
+The input may be an error message, a log, or a pasted chat. Reply with JSON only, no other text:
+{"title": "...", "section": "...", "status": "red|yellow|green",
+ "problem": "...", "cause": "...", "fix": "...", "open": "..."}
+Rules:
+- title: short, under 60 characters, says what is broken.
+- section: exactly one of: %s. Pick the closest.
+- status: red if nothing is fixed yet, yellow if partly fixed, green if fixed.
+- problem: what was seen, in 1-3 plain sentences. Keep the key error line in `backticks`.
+- cause: why it happened, or "" if not known yet.
+- fix: the steps that worked or should be tried, one per line, commands in `backticks`.
+- open: what is left to do, one item per line written as "[ ] item", or "".
+- Never invent facts that are not in the input. Leave a field "" if unknown.
+- Replace any password, token, API key or private key with [hidden].
+Write in English."""
+
+
+def draft(text):
+    """Ask the OmniRoute gateway to write a ticket from raw text."""
+    if not (AI_URL and AI_KEY):
+        raise RuntimeError("AI is not set up. Add TN_AI_URL and TN_AI_KEY to .env")
+    names = sections()
+    req = urllib.request.Request(
+        AI_URL + "/chat/completions",
+        data=json.dumps({"model": AI_MODEL, "temperature": 0.2, "messages": [
+            {"role": "system", "content": PROMPT % ", ".join(names)},
+            {"role": "user", "content": text}]}).encode(),
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + AI_KEY})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as r:
+            reply = json.load(r)["choices"][0]["message"]["content"] or ""
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"OmniRoute said {e.code}: {e.read(300).decode(errors='replace')}")
+    except (urllib.error.URLError, OSError) as e:
+        raise RuntimeError(f"Cannot reach OmniRoute ({getattr(e, 'reason', e)})")
+    except (KeyError, IndexError, ValueError):
+        raise RuntimeError("OmniRoute sent an answer this app cannot read")
+    m = re.search(r"\{.*\}", reply, re.S)
+    try:
+        d = json.loads(m.group(0)) if m else None
+    except ValueError:
+        d = None
+    if not isinstance(d, dict):
+        raise RuntimeError("The AI did not return a ticket. Try again")
+    t = {f: d.get(f, "") for f in FIELDS}
+    for f in FIELDS:
+        v = t[f]
+        t[f] = "\n".join(map(str, v)) if isinstance(v, list) else str(v or "").strip()
+    t["section"] = next((n for n in names if n.lower() == t["section"].lower()), "")
+    if t["status"] not in STATUSES:
+        t["status"] = "red"
     return t
 
 
@@ -151,7 +223,27 @@ class H(BaseHTTPRequestHandler):
             c.close()
         self.send(200, {"name": name})
 
+    def write_draft(self):
+        if not self.headers.get("Content-Type", "").startswith("application/json"):
+            return self.send(415, {"error": "Send JSON"})
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+            if not 0 < n <= 60000:
+                raise ValueError("Text is too long, paste the important part")
+            d = json.loads(self.rfile.read(n))
+            text = str(d.get("text", "") if isinstance(d, dict) else "").strip()
+            if not text:
+                raise ValueError("Paste something first")
+        except ValueError as e:
+            return self.send(400, {"error": str(e)})
+        try:
+            self.send(200, draft(text))
+        except RuntimeError as e:
+            self.send(502, {"error": str(e)})
+
     def do_POST(self):
+        if self.path == "/api/draft":
+            return self.write_draft()
         if self.path == "/api/sections":
             return self.add_section()
         if self.path == "/api/tickets":
@@ -193,6 +285,7 @@ if __name__ == "__main__":
     ip = lan_ip()
     if ip:
         print(f"  iPhone (Wi-Fi): http://{ip}:{PORT}")
+    print(f"  AI writer:      {'on, model ' + AI_MODEL if AI_URL and AI_KEY else 'off (see .env.example)'}")
     print("Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()

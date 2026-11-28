@@ -24,8 +24,15 @@ It opens without the Safari bars and uses its own icon.
 - The three counts at the top filter by status. Tap one, tap again to clear.
 - Tap a ticket to read it. Change status straight from that screen.
 - **Copy for chat** puts the ticket back in template form, ready to paste into a chat.
-- **Paste from chat** reads a filled template and opens it for review before saving.
+- **paste** takes an error, a log or part of a chat. The AI writes the ticket and
+  opens it for review before saving. A filled template is read directly, no AI needed.
 - Wrap paths and commands in `backticks` to have them shown as code.
+
+## AI writer (OmniRoute)
+
+Copy `.env.example` to `.env` next to `app.py` and fill in your OmniRoute address,
+API key and combo. `.env` is ignored by git, so the key stays off GitHub.
+Restart the app; its start message says `AI writer: on`.
 
 ## Data
 

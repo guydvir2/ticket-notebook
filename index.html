@@ -97,7 +97,7 @@ label textarea{min-height:80px;resize:vertical}
 
 <div class="top">
   <h1>Tickets</h1>
-  <button class="link" id="pasteOpen">paste from chat</button>
+  <button class="link" id="pasteOpen">paste</button>
 </div>
 
 <input class="search" id="q" type="search" placeholder="Search" autocomplete="off">
@@ -158,19 +158,15 @@ label textarea{min-height:80px;resize:vertical}
 
 <dialog id="paster"><div class="pane">
   <div class="grab"></div>
-  <h2 class="sheet-title">Paste from chat</h2>
+  <h2 class="sheet-title">Paste</h2>
   <div style="height:16px"></div>
-  <label>Paste the filled template and review it before saving.
-    <textarea id="pasteText" placeholder="Title: Immich unreachable
-Section: Proxmox
-Status: yellow
-Problem: Down, even on the local network
-Cause: Photo share did not mount at boot
-Fix: Mount the share, restart the container
-Still open: Stop it happening after a power cut"></textarea></label>
+  <label>Paste an error, a log or part of a chat. The AI writes the ticket and you review it before saving.
+    A filled template is read directly, without the AI.
+    <textarea id="pasteText" placeholder="Error: mount error(112): Host is down
+mount -t cifs //nas/Pictures /mnt/smb_pictures ..."></textarea></label>
   <p class="err" id="pErr"></p>
   <div class="acts">
-    <button class="btn primary" id="pRead"><span>Review</span></button>
+    <button class="btn primary" id="pRead"><span>Write ticket</span></button>
     <button class="btn" id="pCancel"><span>Cancel</span></button>
   </div>
 </div></dialog>
@@ -480,9 +476,25 @@ $('pasteOpen').onclick = () => {
   $('pasteText').value = ''; $('pErr').textContent = ''; $('paster').showModal();
 };
 $('pCancel').onclick = () => $('paster').close();
-$('pRead').onclick = () => {
-  const t = parse($('pasteText').value);
-  if (!t.title) { $('pErr').textContent = 'No line starting with "Title:" found.'; return; }
+$('pRead').onclick = async () => {
+  const text = $('pasteText').value.trim(), btn = $('pRead');
+  if (!text) { $('pErr').textContent = 'Paste something first.'; return; }
+  let t = parse(text);
+  if (!t.title) {                       // not a filled template: let the AI write it
+    $('pErr').textContent = '';
+    btn.disabled = true; btn.firstChild.textContent = 'Writing…';
+    try {
+      const r = await fetch('/api/draft', {method: 'POST',
+        headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Could not write the ticket');
+      t = d;
+    } catch (err) {
+      $('pErr').textContent = err.message; return;
+    } finally {
+      btn.disabled = false; btn.firstChild.textContent = 'Write ticket';
+    }
+  }
   $('paster').close();
   openForm(t, null);
   if (!t.section) {
