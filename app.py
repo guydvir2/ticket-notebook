@@ -25,7 +25,18 @@ def init():
         c.execute("CREATE TABLE IF NOT EXISTS tickets(id INTEGER PRIMARY KEY, "
                   + ", ".join(f'"{f}" TEXT NOT NULL DEFAULT \'\'' for f in FIELDS)
                   + ", created TEXT, updated TEXT)")
+        c.execute("CREATE TABLE IF NOT EXISTS sections("
+                  "id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE)")
+        if not c.execute("SELECT 1 FROM sections").fetchone():
+            c.executemany("INSERT INTO sections(name) VALUES(?)", [(n,) for n in SECTIONS])
     c.close()
+
+
+def sections():
+    c = db()
+    names = [r["name"] for r in c.execute("SELECT name FROM sections ORDER BY id")]
+    c.close()
+    return names
 
 
 def clean(d):
@@ -34,7 +45,7 @@ def clean(d):
     t = {f: str(d.get(f, "")).strip() for f in FIELDS}
     if not t["title"]:
         raise ValueError("Give the ticket a title")
-    if t["section"] not in SECTIONS:
+    if t["section"] not in sections():
         raise ValueError("Choose a section")
     if t["status"] not in STATUSES:
         raise ValueError("Choose a status")
@@ -78,6 +89,8 @@ class H(BaseHTTPRequestHandler):
                 "WHEN 'yellow' THEN 1 ELSE 2 END, updated DESC, id DESC")]
             c.close()
             return self.send(200, rows)
+        if self.path == "/api/sections":
+            return self.send(200, sections())
         self.send(404, {"error": "not found"})
 
     do_HEAD = do_GET
@@ -113,7 +126,34 @@ class H(BaseHTTPRequestHandler):
         c.close()
         self.send(200 if ok else 404, {"id": tid} if ok else {"error": "Ticket is gone"})
 
+    def add_section(self):
+        if not self.headers.get("Content-Type", "").startswith("application/json"):
+            return self.send(415, {"error": "Send JSON"})
+        try:
+            n = int(self.headers.get("Content-Length", 0))
+            if not 0 < n <= 1000:
+                raise ValueError("Name is too long")
+            d = json.loads(self.rfile.read(n))
+            name = " ".join(str(d.get("name", "") if isinstance(d, dict) else "").split())
+            if not 0 < len(name) <= 30:
+                raise ValueError("Use 1 to 30 characters")
+            if name.lower() == "all":
+                raise ValueError("Choose another name")
+        except ValueError as e:
+            return self.send(400, {"error": str(e)})
+        c = db()
+        try:
+            with c:
+                c.execute("INSERT INTO sections(name) VALUES(?)", (name,))
+        except sqlite3.IntegrityError:
+            return self.send(400, {"error": "That section already exists"})
+        finally:
+            c.close()
+        self.send(200, {"name": name})
+
     def do_POST(self):
+        if self.path == "/api/sections":
+            return self.add_section()
         if self.path == "/api/tickets":
             return self.write_ticket()
         self.send(404, {"error": "not found"})
