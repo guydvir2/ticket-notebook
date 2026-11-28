@@ -91,13 +91,22 @@ label textarea{min-height:80px;resize:vertical}
 .tick .box{flex:none;width:22px;height:22px;border:2px solid var(--muted);border-radius:6px;display:grid;place-items:center;font-size:15px;line-height:1}
 .tick[aria-checked=true] .box{background:var(--green);border-color:var(--green);color:#FFF}
 .tick[aria-checked=true] .label{color:var(--muted);text-decoration:line-through}
+.links{display:flex;gap:18px}
+.field.lock{border:1px dashed var(--line)}
+.field.lock h3{display:flex;justify-content:space-between;align-items:center}
+.field.lock h3 button{color:var(--accent);font-size:13px}
+.lockmark{font-size:12px;color:var(--muted);margin-left:6px}
+.vrow{border-left-color:var(--muted)}
 </style>
 </head>
 <body>
 
 <div class="top">
   <h1>Tickets</h1>
-  <button class="link" id="pasteOpen">paste</button>
+  <div class="links">
+    <button class="link" id="vaultOpen">vault</button>
+    <button class="link" id="pasteOpen">paste</button>
+  </div>
 </div>
 
 <input class="search" id="q" type="search" placeholder="Search" autocomplete="off">
@@ -137,6 +146,8 @@ label textarea{min-height:80px;resize:vertical}
   <label>Cause<textarea name="cause" placeholder="Why it happened"></textarea></label>
   <label>Fix<textarea name="fix" placeholder="What made it work"></textarea></label>
   <label>Still open<textarea name="open" placeholder="Left to do"></textarea></label>
+  <label>&#128274; Secret note, stored encrypted<textarea name="secret"
+    placeholder="Passwords, keys, IPs. Not shown in the list or in Copy for chat"></textarea></label>
   <p class="err" id="fErr"></p>
   <div class="acts">
     <button class="btn primary" type="submit"><span>Save</span></button>
@@ -168,6 +179,33 @@ label textarea{min-height:80px;resize:vertical}
     <button class="btn" id="pCancel"><span>Cancel</span></button>
   </div>
 </div></dialog>
+
+<dialog id="vault"><div class="pane">
+  <div class="grab"></div>
+  <h2 class="sheet-title">&#128274; Vault</h2>
+  <div class="sheet-meta">Notes stored encrypted on the server</div>
+  <div class="group" id="vList"></div>
+  <div class="acts" style="margin-top:16px">
+    <button class="btn primary" id="vAdd"><span>New note</span></button>
+  </div>
+  <button class="x" id="vClose" aria-label="Close">&#10005;</button>
+</div></dialog>
+
+<dialog id="noteEd"><form class="pane" id="nForm">
+  <div class="grab"></div>
+  <h2 class="sheet-title" id="nHead">New note</h2>
+  <div style="height:16px"></div>
+  <label>Title<input name="title" required maxlength="120" autocomplete="off"
+    placeholder="Router admin"></label>
+  <label>Note<textarea name="body" style="min-height:180px"
+    placeholder="Anything you want kept secret"></textarea></label>
+  <p class="err" id="nErr"></p>
+  <div class="acts">
+    <button class="btn primary" type="submit"><span>Save</span></button>
+    <button class="btn" type="button" id="nCancel"><span>Cancel</span></button>
+  </div>
+  <button class="quiet" type="button" id="nDelete">Delete note</button>
+</form></dialog>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -253,14 +291,43 @@ function body(t, k) {
 
 function fields(t) {
   $('dProg').innerHTML = progress(t);
-  $('dFields').innerHTML = Object.keys(LABELS).filter(k => t[k]).map(k =>
+  $('dFields').innerHTML = (Object.keys(LABELS).filter(k => t[k]).map(k =>
     `<div class="field"><h3>${LABELS[k]}</h3>${body(t, k)}</div>`).join('') ||
-    '<div class="field"><p style="color:var(--muted)">No notes yet. Tap Edit to add them.</p></div>';
+    (t.has_secret ? '' :
+    '<div class="field"><p style="color:var(--muted)">No notes yet. Tap Edit to add them.</p></div>')) +
+    (t.has_secret ? '<div class="field lock"><h3>&#128274; Secret note' +
+      '<span><button id="sCopy" hidden>copy</button>&nbsp;&nbsp;<button id="sShow">show</button></span></h3>' +
+      '<p id="sText" style="color:var(--muted)">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</p></div>' : '');
+}
+
+async function getSecret(id) {
+  const r = await fetch('/api/tickets/' + id + '/secret');
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Could not open the secret');
+  return d.secret;
 }
 
 /* saves run one after another, so quick taps cannot overwrite each other */
 let queue = Promise.resolve();
-$('dFields').onclick = e => {
+$('dFields').onclick = async e => {
+  if (e.target.id === 'sShow') {
+    const p = $('sText');
+    if (p.dataset.open) {
+      p.textContent = '••••••••'; p.style.color = 'var(--muted)';
+      p.dataset.open = ''; e.target.textContent = 'show'; $('sCopy').hidden = true;
+      return;
+    }
+    try {
+      p.innerHTML = code(await getSecret(current.id)); p.style.color = '';
+      p.dataset.open = '1'; e.target.textContent = 'hide'; $('sCopy').hidden = false;
+    } catch (err) { toast(err.message); }
+    return;
+  }
+  if (e.target.id === 'sCopy') {
+    getSecret(current.id).then(copy).then(() => toast('Secret copied'))
+      .catch(() => toast('Could not copy'));
+    return;
+  }
   const b = e.target.closest('.tick');
   if (!b) return;
   const t = current, k = b.dataset.k, i = +b.dataset.i;
@@ -333,7 +400,7 @@ function render() {
     const g = gist(t);
     b.innerHTML =
       '<i class="dot" aria-hidden="true"></i><div class="text">' +
-      `<h2>${esc(t.title)}</h2>` +
+      `<h2>${esc(t.title)}${t.has_secret ? '<span class="lockmark">&#128274;</span>' : ''}</h2>` +
       `<div class="meta">${serial(t.id)} · ${esc(t.section)} · ${rel(t.created)}</div>` +
       (progress(t) || (g ? `<p class="gist">${esc(g)}</p>` : '')) +
       '</div><span class="chev" aria-hidden="true">›</span>';
@@ -418,12 +485,17 @@ $('dDelete').onclick = async e => {
 };
 
 /* ---------- editor ---------- */
-function openForm(t, id) {
+async function openForm(t, id) {
   current = id ? current : null;
   $('form').reset();
   $('fErr').textContent = '';
   $('fTitle').textContent = id ? 'Edit ticket' : 'New ticket';
   for (const k of Object.values(KEYS)) if (t[k]) $('form').elements[k].value = t[k];
+  const sec = $('form').elements.secret;
+  if (id && t.has_secret) {
+    try { sec.value = await getSecret(id); }
+    catch (err) { toast(err.message); return; }  // never open with an empty box, it would wipe it
+  }
   $('editor').showModal();
   $('editor').dataset.id = id || '';
 }
@@ -504,6 +576,64 @@ $('pRead').onclick = async () => {
 $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); render(); };
 for (const d of document.querySelectorAll('dialog'))
   d.onclick = e => { if (e.target === d) d.close(); };
+
+/* ---------- vault ---------- */
+let noteId = null;
+async function loadVault() {
+  try {
+    const r = await fetch('/api/notes');
+    const notes = await r.json();
+    if (!r.ok) throw new Error(notes.error || 'Could not open the vault');
+    $('vList').replaceChildren(...notes.map(n => {
+      const b = document.createElement('button');
+      b.className = 'row vrow';
+      b.innerHTML = `<div class="text"><h2>${esc(n.title)}</h2>` +
+        `<div class="meta">updated ${rel(n.updated)}</div></div><span class="chev" aria-hidden="true">›</span>`;
+      b.onclick = () => openNote(n.id);
+      return b;
+    }));
+    if (!notes.length)
+      $('vList').innerHTML = '<div class="empty" style="padding:24px 8px">No secret notes yet.</div>';
+  } catch (err) { $('vList').innerHTML = `<div class="empty">${esc(err.message)}</div>`; }
+}
+async function openNote(id) {
+  $('nForm').reset(); $('nErr').textContent = '';
+  noteId = id;
+  $('nHead').textContent = id ? 'Secret note' : 'New note';
+  $('nDelete').hidden = !id;
+  $('nDelete').textContent = 'Delete note'; $('nDelete').dataset.armed = '';
+  if (id) {
+    try {
+      const r = await fetch('/api/notes/' + id);
+      const n = await r.json();
+      if (!r.ok) throw new Error(n.error || 'Could not open the note');
+      $('nForm').elements.title.value = n.title;
+      $('nForm').elements.body.value = n.body;
+    } catch (err) { toast(err.message); return; }
+  }
+  $('noteEd').showModal();
+}
+$('vaultOpen').onclick = () => { loadVault(); $('vault').showModal(); };
+$('vClose').onclick = () => $('vault').close();
+$('vAdd').onclick = () => openNote(null);
+$('nCancel').onclick = () => $('noteEd').close();
+$('nForm').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const r = await fetch('/api/notes' + (noteId ? '/' + noteId : ''), {
+      method: noteId ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(Object.fromEntries(new FormData($('nForm'))))});
+    if (!r.ok) throw new Error((await r.json()).error || 'Could not save');
+    $('noteEd').close(); loadVault(); toast('Saved');
+  } catch (err) { $('nErr').textContent = err.message; }
+};
+$('nDelete').onclick = async e => {
+  if (!e.target.dataset.armed) {
+    e.target.dataset.armed = '1'; e.target.textContent = 'Delete for good?'; return;
+  }
+  const r = await fetch('/api/notes/' + noteId, {method: 'DELETE'});
+  $('noteEd').close(); loadVault(); toast(r.ok ? 'Deleted' : 'Could not delete');
+};
 
 load();
 </script>

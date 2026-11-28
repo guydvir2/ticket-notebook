@@ -28,6 +28,18 @@ It opens without the Safari bars and uses its own icon.
   opens it for review before saving. A filled template is read directly, no AI needed.
 - Wrap paths and commands in `backticks` to have them shown as code.
 
+## Secret notes
+
+- Every ticket has a **Secret note** field for passwords, keys and IPs. The list only
+  shows a lock; tap **show** inside the ticket to read it. It is never part of
+  **Copy for chat** and never sent to the AI.
+- **vault** (top right) holds secret notes that belong to no ticket.
+- Both are stored encrypted in `tickets.db`. The key is made on first run in
+  `secret.key` next to `app.py`; git ignores it.
+- **Back up `secret.key` together with `tickets.db`.** Without the key the secret notes
+  cannot be read. Anyone who can open the app can read them, so keep the app on your
+  home network.
+
 ## AI writer (OmniRoute)
 
 Copy `.env.example` to `ai.env` next to `app.py` and fill in your OmniRoute address,
@@ -36,7 +48,7 @@ Restart the app; its start message says `AI writer: on`.
 
 ## Data
 
-Everything lives in `tickets.db` next to `app.py`. Back that file up.
+Everything lives in `tickets.db` next to `app.py`. Back that file up, and `secret.key` with it.
 Copy it elsewhere to move the app.
 
 ## Keep it at home
