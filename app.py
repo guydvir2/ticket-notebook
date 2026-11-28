@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Ticket Notebook - local web server. Python standard library only."""
-import json, os, sqlite3, datetime, mimetypes
+import json, os, sqlite3, datetime, mimetypes, socket
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -135,7 +135,26 @@ class H(BaseHTTPRequestHandler):
         self.send(200 if ok else 404, {"deleted": ok} if ok else {"error": "Ticket is gone"})
 
 
+def lan_ip():
+    """Address other devices on the home network can use, or None."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("10.255.255.255", 1))  # picks a route, sends nothing
+            return s.getsockname()[0]
+    except OSError:
+        return None
+
+
 if __name__ == "__main__":
     init()
-    print(f"Ticket Notebook is running. Open http://<this-machine>:{PORT}")
-    ThreadingHTTPServer(("0.0.0.0", PORT), H).serve_forever()
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), H)
+    print("Ticket Notebook is running.")
+    print(f"  This computer:  http://localhost:{PORT}")
+    ip = lan_ip()
+    if ip:
+        print(f"  iPhone (Wi-Fi): http://{ip}:{PORT}")
+    print("Press Ctrl+C to stop.", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
