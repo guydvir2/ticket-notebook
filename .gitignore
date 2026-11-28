@@ -15,5 +15,7 @@ venv/
 
 # Secrets and OS files
 .env
+ai.env
+ai.env.txt
 *.log
 .DS_Store

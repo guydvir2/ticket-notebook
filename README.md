@@ -30,8 +30,8 @@ It opens without the Safari bars and uses its own icon.
 
 ## AI writer (OmniRoute)
 
-Copy `.env.example` to `.env` next to `app.py` and fill in your OmniRoute address,
-API key and combo. `.env` is ignored by git, so the key stays off GitHub.
+Copy `.env.example` to `ai.env` next to `app.py` and fill in your OmniRoute address,
+API key and combo. `ai.env` is ignored by git, so the key stays off GitHub.
 Restart the app; its start message says `AI writer: on`.
 
 ## Data

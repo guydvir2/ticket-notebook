@@ -11,7 +11,10 @@ SECTIONS = ["Networking", "HA", "Proxmox"]
 STATUSES = ["red", "yellow", "green"]
 
 
-ENV_FILE = os.path.join(BASE, ".env")
+# Windows Explorer will not name a file ".env", so ai.env (and ai.env.txt) work too
+ENV_NAMES = [".env", "ai.env", "ai.env.txt"]
+ENV_FILE = next((os.path.join(BASE, n) for n in ENV_NAMES
+                 if os.path.exists(os.path.join(BASE, n))), os.path.join(BASE, "ai.env"))
 
 
 def load_env():
@@ -295,9 +298,9 @@ if __name__ == "__main__":
         print(f"  AI writer:      on, model {AI_MODEL}, {AI_URL}")
     elif not os.path.exists(ENV_FILE):
         print(f"  AI writer:      off, no file {ENV_FILE}")
-        near = [n for n in os.listdir(BASE) if n.startswith(".env") or n.startswith("env")]
+        near = [n for n in os.listdir(BASE) if ("env" in n.lower() and n not in ENV_NAMES)]
         if near:
-            print(f"                  found {', '.join(near)} - rename the right one to .env")
+            print(f"                  found {', '.join(near)} - rename the right one to ai.env")
     else:
         miss = [k for k, v in (("TN_AI_URL", AI_URL), ("TN_AI_KEY", AI_KEY)) if not v]
         print(f"  AI writer:      off, {' and '.join(miss)} empty in {ENV_FILE}")
