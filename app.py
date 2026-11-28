@@ -110,6 +110,12 @@ def init():
             c.execute("ALTER TABLE tickets ADD COLUMN secret TEXT NOT NULL DEFAULT ''")
         c.execute("CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY, "
                   "title TEXT NOT NULL, body TEXT NOT NULL, created TEXT, updated TEXT)")
+        if "notebook" not in [r["name"] for r in c.execute("PRAGMA table_info(notes)")]:
+            c.execute("ALTER TABLE notes ADD COLUMN notebook TEXT NOT NULL DEFAULT 'General'")
+        c.execute("CREATE TABLE IF NOT EXISTS notebooks("
+                  "id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE COLLATE NOCASE)")
+        if not c.execute("SELECT 1 FROM notebooks").fetchone():
+            c.execute("INSERT INTO notebooks(name) VALUES('General')")
         if not c.execute("SELECT 1 FROM sections").fetchone():
             c.executemany("INSERT INTO sections(name) VALUES(?)", [(n,) for n in SECTIONS])
     c.close()
@@ -118,6 +124,13 @@ def init():
 def sections():
     c = db()
     names = [r["name"] for r in c.execute("SELECT name FROM sections ORDER BY id")]
+    c.close()
+    return names
+
+
+def notebooks():
+    c = db()
+    names = [r["name"] for r in c.execute("SELECT name FROM notebooks ORDER BY id")]
     c.close()
     return names
 
@@ -241,10 +254,12 @@ class H(BaseHTTPRequestHandler):
                 return self.send(500, {"error": str(e)})
         if self.path == "/api/notes":
             c = db()
-            rows = c.execute("SELECT id, title, updated FROM notes ORDER BY updated DESC").fetchall()
+            rows = c.execute("SELECT id, title, notebook, updated FROM notes "
+                             "ORDER BY updated DESC").fetchall()
             c.close()
             try:
                 return self.send(200, [{"id": r["id"], "title": unseal(r["title"]),
+                                        "notebook": r["notebook"],
                                         "updated": r["updated"]} for r in rows])
             except ValueError as e:
                 return self.send(500, {"error": str(e)})
@@ -262,6 +277,8 @@ class H(BaseHTTPRequestHandler):
                 return self.send(500, {"error": str(e)})
         if self.path == "/api/sections":
             return self.send(200, sections())
+        if self.path == "/api/notebooks":
+            return self.send(200, notebooks())
         self.send(404, {"error": "not found"})
 
     do_HEAD = do_GET
@@ -290,20 +307,24 @@ class H(BaseHTTPRequestHandler):
             d = self.read_json(200000)
             title = str(d.get("title", "")).strip()
             body = str(d.get("body", "")).strip()
+            book = str(d.get("notebook", "General")).strip()
             if not title:
                 raise ValueError("Give the note a title")
+            if book not in notebooks():
+                raise ValueError("Choose a notebook")
         except ValueError as e:
             return self.send(400, {"error": str(e)})
         now = datetime.datetime.now().isoformat(timespec="seconds")
         c = db()
         with c:
             if nid is None:
-                nid = c.execute("INSERT INTO notes(title,body,created,updated) VALUES(?,?,?,?)",
-                                (seal(title), seal(body), now, now)).lastrowid
+                nid = c.execute("INSERT INTO notes(title,body,notebook,created,updated) "
+                                "VALUES(?,?,?,?,?)",
+                                (seal(title), seal(body), book, now, now)).lastrowid
                 ok = True
             else:
-                ok = c.execute("UPDATE notes SET title=?,body=?,updated=? WHERE id=?",
-                               (seal(title), seal(body), now, nid)).rowcount > 0
+                ok = c.execute("UPDATE notes SET title=?,body=?,notebook=?,updated=? WHERE id=?",
+                               (seal(title), seal(body), book, now, nid)).rowcount > 0
         c.close()
         self.send(200 if ok else 404, {"id": nid} if ok else {"error": "Note is gone"})
 
@@ -339,6 +360,26 @@ class H(BaseHTTPRequestHandler):
                     c.execute("UPDATE tickets SET secret=? WHERE id=?", (seal(secret), tid))
         c.close()
         self.send(200 if ok else 404, {"id": tid} if ok else {"error": "Ticket is gone"})
+
+    def add_notebook(self):
+        try:
+            d = self.read_json(1000)
+            name = " ".join(str(d.get("name", "")).split())
+            if not 0 < len(name) <= 30:
+                raise ValueError("Use 1 to 30 characters")
+            if name.lower() == "all":
+                raise ValueError("Choose another name")
+        except ValueError as e:
+            return self.send(400, {"error": str(e)})
+        c = db()
+        try:
+            with c:
+                c.execute("INSERT INTO notebooks(name) VALUES(?)", (name,))
+        except sqlite3.IntegrityError:
+            return self.send(400, {"error": "That notebook already exists"})
+        finally:
+            c.close()
+        self.send(200, {"name": name})
 
     def add_section(self):
         if not self.headers.get("Content-Type", "").startswith("application/json"):
@@ -386,6 +427,8 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.path == "/api/notes":
             return self.write_note()
+        if self.path == "/api/notebooks":
+            return self.add_notebook()
         if self.path == "/api/draft":
             return self.write_draft()
         if self.path == "/api/sections":

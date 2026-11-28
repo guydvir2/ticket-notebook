@@ -33,7 +33,8 @@ It opens without the Safari bars and uses its own icon.
 - Every ticket has a **Secret note** field for passwords, keys and IPs. The list only
   shows a lock; tap **show** inside the ticket to read it. It is never part of
   **Copy for chat** and never sent to the AI.
-- **vault** (top right) holds secret notes that belong to no ticket.
+- **vault** (top right) holds secret notes that belong to no ticket, sorted into
+  notebooks. Tap **+ Notebook** to add one; old notes land in **General**.
 - Both are stored encrypted in `tickets.db`. The key is made on first run in
   `secret.key` next to `app.py`; git ignores it.
 - **Back up `secret.key` together with `tickets.db`.** Without the key the secret notes

@@ -184,7 +184,8 @@ label textarea{min-height:80px;resize:vertical}
   <div class="grab"></div>
   <h2 class="sheet-title">&#128274; Vault</h2>
   <div class="sheet-meta">Notes stored encrypted on the server</div>
-  <div class="group" id="vList"></div>
+  <div class="chips" id="vChips"></div>
+  <div class="group" id="vList" style="margin-top:8px"></div>
   <div class="acts" style="margin-top:16px">
     <button class="btn primary" id="vAdd"><span>New note</span></button>
   </div>
@@ -197,6 +198,7 @@ label textarea{min-height:80px;resize:vertical}
   <div style="height:16px"></div>
   <label>Title<input name="title" required maxlength="120" autocomplete="off"
     placeholder="Router admin"></label>
+  <label>Notebook<select name="notebook"></select></label>
   <label>Note<textarea name="body" style="min-height:180px"
     placeholder="Anything you want kept secret"></textarea></label>
   <p class="err" id="nErr"></p>
@@ -205,6 +207,18 @@ label textarea{min-height:80px;resize:vertical}
     <button class="btn" type="button" id="nCancel"><span>Cancel</span></button>
   </div>
   <button class="quiet" type="button" id="nDelete">Delete note</button>
+</form></dialog>
+
+<dialog id="bookAdder"><form class="pane" id="bForm">
+  <div class="grab"></div>
+  <h2 class="sheet-title">New notebook</h2>
+  <div style="height:16px"></div>
+  <label>Name<input id="bName" required maxlength="30" autocomplete="off" placeholder="Passwords"></label>
+  <p class="err" id="bErr"></p>
+  <div class="acts">
+    <button class="btn primary" type="submit">Add</button>
+    <button class="btn" type="button" id="bCancel">Cancel</button>
+  </div>
 </form></dialog>
 
 <script>
@@ -578,17 +592,35 @@ for (const d of document.querySelectorAll('dialog'))
   d.onclick = e => { if (e.target === d) d.close(); };
 
 /* ---------- vault ---------- */
-let noteId = null;
+let noteId = null, book = 'All', BOOKS = [];
 async function loadVault() {
   try {
     const r = await fetch('/api/notes');
-    const notes = await r.json();
-    if (!r.ok) throw new Error(notes.error || 'Could not open the vault');
+    const all_ = await r.json();
+    if (!r.ok) throw new Error(all_.error || 'Could not open the vault');
+    const rb = await fetch('/api/notebooks');
+    BOOKS = await rb.json();
+    if (book !== 'All' && !BOOKS.includes(book)) book = 'All';
+    $('nForm').elements.notebook.replaceChildren(...BOOKS.map(n => new Option(n, n)));
+    $('vChips').replaceChildren(...['All', ...BOOKS].map(n => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      const count = n === 'All' ? all_.length : all_.filter(x => x.notebook === n).length;
+      b.textContent = `${n} ${count}`;
+      b.setAttribute('aria-pressed', book === n);
+      b.onclick = () => { book = n; loadVault(); };
+      return b;
+    }));
+    const plus = document.createElement('button');
+    plus.className = 'chip add'; plus.textContent = '+ Notebook';
+    plus.onclick = () => { $('bForm').reset(); $('bErr').textContent = ''; $('bookAdder').showModal(); };
+    $('vChips').append(plus);
+    const notes = all_.filter(n => book === 'All' || n.notebook === book);
     $('vList').replaceChildren(...notes.map(n => {
       const b = document.createElement('button');
       b.className = 'row vrow';
       b.innerHTML = `<div class="text"><h2>${esc(n.title)}</h2>` +
-        `<div class="meta">updated ${rel(n.updated)}</div></div><span class="chev" aria-hidden="true">›</span>`;
+        `<div class="meta">${book === 'All' ? esc(n.notebook) + ' · ' : ''}updated ${rel(n.updated)}</div></div><span class="chev" aria-hidden="true">›</span>`;
       b.onclick = () => openNote(n.id);
       return b;
     }));
@@ -601,6 +633,7 @@ async function openNote(id) {
   noteId = id;
   $('nHead').textContent = id ? 'Secret note' : 'New note';
   $('nDelete').hidden = !id;
+  $('nForm').elements.notebook.value = book !== 'All' ? book : (BOOKS[0] || 'General');
   $('nDelete').textContent = 'Delete note'; $('nDelete').dataset.armed = '';
   if (id) {
     try {
@@ -609,6 +642,7 @@ async function openNote(id) {
       if (!r.ok) throw new Error(n.error || 'Could not open the note');
       $('nForm').elements.title.value = n.title;
       $('nForm').elements.body.value = n.body;
+      $('nForm').elements.notebook.value = n.notebook;
     } catch (err) { toast(err.message); return; }
   }
   $('noteEd').showModal();
@@ -617,6 +651,17 @@ $('vaultOpen').onclick = () => { loadVault(); $('vault').showModal(); };
 $('vClose').onclick = () => $('vault').close();
 $('vAdd').onclick = () => openNote(null);
 $('nCancel').onclick = () => $('noteEd').close();
+$('bCancel').onclick = () => $('bookAdder').close();
+$('bForm').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    const r = await fetch('/api/notebooks', {method: 'POST',
+      headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name: $('bName').value})});
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not add');
+    $('bookAdder').close(); book = d.name; loadVault(); toast('Notebook added');
+  } catch (err) { $('bErr').textContent = err.message; }
+};
 $('nForm').onsubmit = async e => {
   e.preventDefault();
   try {
