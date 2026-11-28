@@ -6,6 +6,10 @@ A logbook for home fixes. Python standard library only, no packages to install.
 
     python3 app.py
 
+In PyCharm, pick **Ticket Notebook** next to the Run button. It comes from the
+`.run` folder, so it survives every pull. If PyCharm asks for an interpreter,
+choose any Python 3 once (no packages needed).
+
 Then open `http://<this-machine-ip>:8080` from any device on your home network.
 
 On the iPhone: open that address in Safari, tap Share, then **Add to Home Screen**.
