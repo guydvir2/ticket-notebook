@@ -11,12 +11,18 @@ SECTIONS = ["Networking", "HA", "Proxmox"]
 STATUSES = ["red", "yellow", "green"]
 
 
+ENV_FILE = os.path.join(BASE, ".env")
+
+
 def load_env():
     """Read KEY=value lines from .env next to app.py. Real env vars win."""
     try:
-        with open(os.path.join(BASE, ".env"), encoding="utf-8") as f:
+        with open(ENV_FILE, encoding="utf-8-sig") as f:  # -sig: Windows Notepad BOM
             for line in f:
-                k, sep, v = line.strip().partition("=")
+                line = line.strip()
+                if line.startswith("export "):
+                    line = line[7:]
+                k, sep, v = line.partition("=")
                 if sep and k and not k.startswith("#"):
                     os.environ.setdefault(k.strip(), v.strip().strip('"\''))
     except OSError:
@@ -285,7 +291,16 @@ if __name__ == "__main__":
     ip = lan_ip()
     if ip:
         print(f"  iPhone (Wi-Fi): http://{ip}:{PORT}")
-    print(f"  AI writer:      {'on, model ' + AI_MODEL if AI_URL and AI_KEY else 'off (see .env.example)'}")
+    if AI_URL and AI_KEY:
+        print(f"  AI writer:      on, model {AI_MODEL}, {AI_URL}")
+    elif not os.path.exists(ENV_FILE):
+        print(f"  AI writer:      off, no file {ENV_FILE}")
+        near = [n for n in os.listdir(BASE) if n.startswith(".env") or n.startswith("env")]
+        if near:
+            print(f"                  found {', '.join(near)} - rename the right one to .env")
+    else:
+        miss = [k for k, v in (("TN_AI_URL", AI_URL), ("TN_AI_KEY", AI_KEY)) if not v]
+        print(f"  AI writer:      off, {' and '.join(miss)} empty in {ENV_FILE}")
     print("Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()
