@@ -6,199 +6,92 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tickets">
-<meta name="theme-color" content="#FBFAF7" media="(prefers-color-scheme:light)">
-<meta name="theme-color" content="#15161A" media="(prefers-color-scheme:dark)">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme:light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme:dark)">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <title>Tickets</title>
 <style>
-:root{
-  --paper:#FBFAF7; --grid:#C9D4DE55; --card:#FFF; --ink:#1D1C1A; --muted:#6C6A64;
-  --line:#9E9B92; --faint:#C2BFB6; --field:#FFF; --press:#F0EEE8;
-  --red:#D8342F; --yellow:#C8860D; --green:#1F7A45;
-  --hand:'Bradley Hand','Marker Felt','Chalkboard SE','Segoe Print','Comic Sans MS',cursive;
-}
-@media (prefers-color-scheme:dark){
-  :root{
-    --paper:#15161A; --grid:#2B323C; --card:#1C1E23; --ink:#ECEAE4; --muted:#95928A;
-    --line:#565A62; --faint:#3A3D44; --field:#121317; --press:#24272D;
-    --red:#FF6B66; --yellow:#E8A93A; --green:#46B877;
-  }
-}
+:root{--bg:#F2F2F7;--card:#FFF;--ink:#111;--muted:#6C6C70;--line:#DCDCE1;--search:#E3E3E9;
+  --accent:#0066D6;--red:#E5383B;--yellow:#D98E04;--green:#248A3D}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--card:#1C1C1E;--ink:#F2F2F7;--muted:#98989F;
+  --line:#38383A;--search:#1C1C1E;--accent:#409CFF;--red:#FF6961;--yellow:#FFB340;--green:#4CD964}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
-body{
-  margin:0;color:var(--ink);background:var(--paper);
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),
-                   linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-  background-size:19px 19px;
-  font:400 17px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-  padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 110px);
-  overscroll-behavior-y:contain;
-}
+body{margin:0 auto;max-width:640px;background:var(--bg);color:var(--ink);
+  font:400 17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 100px)}
 button,input,select,textarea{font:inherit;color:inherit;margin:0}
 button{background:none;border:0;padding:0;cursor:pointer}
-:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-.hand{font-family:var(--hand)}
-.ink{position:absolute;left:3px;top:3px;width:calc(100% - 6px);height:calc(100% - 6px);
-     overflow:visible;pointer-events:none}
-.rail{position:absolute;left:7px;top:12px;width:8px;height:calc(100% - 24px);
-      overflow:visible;pointer-events:none}
-
-/* ---------- header ---------- */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
-h1{margin:0;font-family:var(--hand);font-size:33px;font-weight:400;letter-spacing:.01em}
-.underline{display:block;width:104px;height:8px;margin:-1px 0 0}
-.link{font-size:14px;color:var(--muted)}
-.link:active{color:var(--ink)}
-
-.signals{display:flex;gap:9px;margin:16px 0 13px}
-.sig{position:relative;flex:1;padding:10px 4px;text-align:center;background:none}
-.sig .n{font-family:var(--hand);font-size:20px;color:var(--ink);display:block;line-height:1.1}
-.sig .w{font-size:11px;color:var(--muted);display:block;margin-top:1px}
-.sig .dot{position:absolute;left:13px;top:13px;width:9px;height:9px;border-radius:50%;
-          background:currentColor}
-.red{color:var(--red)} .yellow{color:var(--yellow)} .green{color:var(--green)}
-
-.wrap{position:relative;margin-bottom:13px}
-.search{width:100%;padding:11px 14px;background:transparent;border:0;font-size:16px;
-        position:relative;color:var(--ink)}
-.search::placeholder{color:var(--muted)}
-
-.chips{display:flex;gap:9px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{position:relative;flex:none;padding:8px 15px;font-size:14px;color:var(--muted)}
-.chip[aria-pressed=true]{color:var(--ink);font-weight:500}
-
-/* ---------- list ---------- */
-#list{display:flex;flex-direction:column;gap:11px}
-.row{position:relative;display:block;width:100%;text-align:left;padding:13px 14px 14px 25px;
-     background:none;border-radius:10px}
-.row:active{background:var(--press)}
-.row .paper{position:absolute;inset:3px;background:var(--card);border-radius:9px}
-.row h2{position:relative;margin:2px 0 0;font-family:var(--hand);font-size:19px;
-        font-weight:400;line-height:1.22;color:var(--ink)}
-.meta{position:relative;display:flex;justify-content:space-between;gap:12px;
-      font-size:12px;color:var(--muted)}
-.meta b{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:9px}
-.gist{position:relative;margin:3px 0 0;font-size:13px;color:var(--muted);
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.empty{padding:52px 8px;text-align:center;color:var(--muted);font-size:15px}
-.empty b{display:block;font-family:var(--hand);font-weight:400;color:var(--ink);
-         font-size:21px;margin-bottom:6px}
-
-/* ---------- floating add ---------- */
-.fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 24px);
-     width:58px;height:58px;color:var(--ink);font-family:var(--hand);font-size:31px;
-     display:grid;place-items:center}
-.fab .paper{position:absolute;inset:0;background:var(--card);border-radius:50%}
-.fab span{position:relative}
-.fab:active{transform:scale(.94)}
-
-/* ---------- sheets ---------- */
+h1{margin:0;font-size:34px;font-weight:700}
+.link{color:var(--accent);font-size:16px}
+.search{width:100%;margin:14px 0 10px;padding:10px 14px;border:0;border-radius:10px;
+  background:var(--search);font-size:16px}
+.chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:8px}
+.chip{flex:none;padding:6px 14px;border-radius:999px;background:var(--card);font-size:14px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.head{margin:18px 14px 6px;font-size:13px;color:var(--muted)}
+.group{background:var(--card);border-radius:12px;overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 14px}
+.row+.row{border-top:1px solid var(--line)}
+.row:active{background:var(--search)}
+.row>.dot{flex:none;width:10px;height:10px;border-radius:50%;background:currentColor}
+.row .text{flex:1;min-width:0;color:var(--ink)}
+.row h2{margin:0;font-size:17px;font-weight:500;overflow-wrap:anywhere}
+.meta{font-size:13px;color:var(--muted)}
+.gist{margin:0;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--muted);font-size:20px}
+.red{color:var(--red)}.yellow{color:var(--yellow)}.green{color:var(--green)}
+.empty{padding:52px 8px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:20px;margin-bottom:6px}
+.fab{position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 24px);width:56px;height:56px;
+  border-radius:50%;background:var(--accent);color:#FFF;font-size:30px;display:grid;place-items:center}
 dialog{width:100%;max-width:560px;margin:auto auto 0;padding:0;border:0;color:var(--ink);
-       background:var(--paper);
-       background-image:linear-gradient(var(--grid) 1px,transparent 1px),
-                        linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-       background-size:19px 19px;border-radius:18px 18px 0 0;max-height:92dvh}
-@media (min-width:600px){dialog{margin:auto;border-radius:18px}}
-dialog::backdrop{background:#0009}
-dialog[open]{animation:rise .3s cubic-bezier(.32,.72,0,1)}
-@keyframes rise{from{transform:translateY(26px);opacity:0}}
-@media (prefers-reduced-motion:reduce){dialog[open]{animation:none}.fab:active{transform:none}}
-.pane{position:relative;padding:10px 20px calc(env(safe-area-inset-bottom) + 22px);
-      overflow-y:auto;max-height:92dvh}
-.grab{width:38px;height:4px;border-radius:2px;background:var(--faint);margin:0 auto 14px}
-.sheet-title{margin:0 0 3px;font-family:var(--hand);font-size:25px;font-weight:400;
-             line-height:1.2;padding-right:38px}
+  background:var(--bg);border-radius:16px 16px 0 0;max-height:92dvh}
+@media (min-width:600px){dialog{margin:auto;border-radius:16px}}
+dialog::backdrop{background:#0008}
+.pane{position:relative;padding:10px 20px calc(env(safe-area-inset-bottom) + 22px);overflow-y:auto;max-height:92dvh}
+.grab{width:38px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px}
+.sheet-title{margin:0 0 3px;font-size:22px;font-weight:600;padding-right:38px}
 .sheet-meta{font-size:13px;color:var(--muted);margin-bottom:18px}
-.x{position:absolute;top:12px;right:16px;width:30px;height:30px;color:var(--muted);
-   font-size:17px;line-height:30px;text-align:center}
-
-.seg{display:flex;gap:7px;margin-bottom:22px}
-.seg button{position:relative;flex:1;padding:11px 4px;font-size:13px;color:var(--muted);
-            text-align:center}
-.seg button .dot{display:block;width:9px;height:9px;border-radius:50%;margin:0 auto 5px;
-                 background:var(--faint)}
-.seg button[aria-pressed=true] .dot{background:currentColor}
+.x{position:absolute;top:12px;right:16px;width:30px;height:30px;color:var(--muted)}
+.seg{display:flex;gap:4px;margin-bottom:20px;padding:3px;border-radius:10px;background:var(--search)}
+.seg button{flex:1;padding:8px 4px;border-radius:8px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--card);font-weight:600}
 .seg button.red[aria-pressed=true]{color:var(--red)}
 .seg button.yellow[aria-pressed=true]{color:var(--yellow)}
 .seg button.green[aria-pressed=true]{color:var(--green)}
-.seg button[aria-pressed=true] span{color:var(--ink);font-weight:500}
-
-.field{margin-bottom:20px}
-.field h3{margin:0 0 4px;font-size:12px;font-weight:400;color:var(--muted)}
-.field p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:16px;line-height:1.5}
-.field code{font:14px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
-            background:var(--press);padding:2px 5px;border-radius:4px}
-.open-note{position:relative;padding:12px 14px}
-.open-note p{position:relative}
-
+.seg .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:currentColor}
+.field{margin-bottom:14px;padding:10px 14px;border-radius:12px;background:var(--card)}
+.field h3{margin:0 0 3px;font-size:12px;font-weight:400;color:var(--muted)}
+.field p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.field code{font:14px ui-monospace,Menlo,monospace;background:var(--search);padding:2px 5px;border-radius:4px}
 .acts{display:flex;gap:9px;padding-top:4px}
-.btn{position:relative;flex:1;padding:13px;text-align:center;font-size:16px}
-.btn span{position:relative}
-.btn.primary{font-weight:500}
-.btn.primary .paper{position:absolute;inset:3px;background:var(--ink);border-radius:9px}
-.btn.primary span{color:var(--paper)}
-.quiet{display:block;width:100%;margin-top:16px;padding:10px;text-align:center;
-       font-size:15px;color:var(--red)}
-
-label{display:block;margin-bottom:16px;font-size:12px;color:var(--muted)}
-label .wrap{margin:5px 0 0}
-label input,label select,label textarea{display:block;width:100%;padding:11px 13px;
-  font-size:16px;background:transparent;border:0;position:relative;
-  font-family:inherit;color:var(--ink)}
-label textarea{min-height:80px;resize:vertical;line-height:1.45}
-label select{appearance:none;background:transparent}
-#pasteText{min-height:220px;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
-.err{color:var(--red);font-size:14px;margin:0 0 14px}
-.err:empty{display:none}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);
-       translate:-50% 0;background:var(--ink);color:var(--paper);padding:10px 18px;
-       border-radius:999px;font-size:15px;opacity:0;pointer-events:none;
-       transition:opacity .2s;z-index:9}
+.btn{flex:1;padding:13px;border-radius:12px;background:var(--card);color:var(--accent)}
+.btn.primary{background:var(--accent);color:#FFF;font-weight:600}
+.quiet{display:block;width:100%;margin-top:14px;padding:10px;color:var(--red)}
+label{display:block;margin-bottom:14px;font-size:13px;color:var(--muted)}
+label input,label select,label textarea{display:block;width:100%;margin-top:5px;padding:11px 13px;
+  font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px}
+label textarea{min-height:80px;resize:vertical}
+#pasteText{min-height:220px;font:14px/1.5 ui-monospace,Menlo,monospace}
+.err{color:var(--red);font-size:14px;margin:0 0 14px}.err:empty{display:none}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);translate:-50% 0;
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:15px;
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:9}
 .toast.show{opacity:1}
 </style>
 </head>
 <body>
 
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-<filter id="r0" x="-6%" y="-14%" width="112%" height="128%">
-  <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="9" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="r1" x="-6%" y="-14%" width="112%" height="128%">
-  <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="3" seed="27" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="3.6" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="r2" x="-6%" y="-14%" width="112%" height="128%">
-  <feTurbulence type="fractalNoise" baseFrequency="0.024" numOctaves="4" seed="54" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="rr" filterUnits="userSpaceOnUse" x="-12" y="-12" width="44" height="3000">
-  <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" seed="31" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.2" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-<filter id="rm" x="-20%" y="-10%" width="140%" height="120%">
-  <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="4" seed="13" result="n"/>
-  <feDisplacementMap in="SourceGraphic" in2="n" scale="4.6" xChannelSelector="R" yChannelSelector="G"/>
-</filter>
-</defs></svg>
-
 <div class="top">
-  <div>
-    <h1>Tickets</h1>
-    <svg class="underline" viewBox="0 0 110 8" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M2 4 C 26 1.5, 56 6.5, 108 3" fill="none" stroke="currentColor"
-            stroke-width="1.7" stroke-linecap="round" filter="url(#rm)"/></svg>
-  </div>
+  <h1>Tickets</h1>
   <button class="link" id="pasteOpen">paste from chat</button>
 </div>
 
-<div class="signals" id="signals"></div>
-<div class="wrap" id="searchWrap">
-  <input class="search" id="q" type="search" placeholder="Search tickets" autocomplete="off">
-</div>
+<input class="search" id="q" type="search" placeholder="Search" autocomplete="off">
 <div class="chips" id="chips"></div>
 <div id="list"></div>
 
@@ -223,18 +116,18 @@ label select{appearance:none;background:transparent}
   <div class="grab"></div>
   <h2 class="sheet-title" id="fTitle">New ticket</h2>
   <div style="height:16px"></div>
-  <label>Title<div class="wrap"><input name="title" required maxlength="120"
-    placeholder="What is broken"></div></label>
-  <label>Section<div class="wrap"><select name="section">
+  <label>Title<input name="title" required maxlength="120"
+    placeholder="What is broken"></label>
+  <label>Section<select name="section">
     <option>Networking</option><option>HA</option><option>Proxmox</option>
-    </select></div></label>
-  <label>Status<div class="wrap"><select name="status">
+    </select></label>
+  <label>Status<select name="status">
     <option value="red">Open</option><option value="yellow">Partly fixed</option>
-    <option value="green">Fixed</option></select></div></label>
-  <label>Problem<div class="wrap"><textarea name="problem" placeholder="What you saw"></textarea></div></label>
-  <label>Cause<div class="wrap"><textarea name="cause" placeholder="Why it happened"></textarea></div></label>
-  <label>Fix<div class="wrap"><textarea name="fix" placeholder="What made it work"></textarea></div></label>
-  <label>Still open<div class="wrap"><textarea name="open" placeholder="Left to do"></textarea></div></label>
+    <option value="green">Fixed</option></select></label>
+  <label>Problem<textarea name="problem" placeholder="What you saw"></textarea></label>
+  <label>Cause<textarea name="cause" placeholder="Why it happened"></textarea></label>
+  <label>Fix<textarea name="fix" placeholder="What made it work"></textarea></label>
+  <label>Still open<textarea name="open" placeholder="Left to do"></textarea></label>
   <p class="err" id="fErr"></p>
   <div class="acts">
     <button class="btn primary" type="submit"><span>Save</span></button>
@@ -247,13 +140,13 @@ label select{appearance:none;background:transparent}
   <h2 class="sheet-title">Paste from chat</h2>
   <div style="height:16px"></div>
   <label>Paste the filled template and review it before saving.
-    <div class="wrap"><textarea id="pasteText" placeholder="Title: Immich unreachable
+    <textarea id="pasteText" placeholder="Title: Immich unreachable
 Section: Proxmox
 Status: yellow
 Problem: Down, even on the local network
 Cause: Photo share did not mount at boot
 Fix: Mount the share, restart the container
-Still open: Stop it happening after a power cut"></textarea></div></label>
+Still open: Stop it happening after a power cut"></textarea></label>
   <p class="err" id="pErr"></p>
   <div class="acts">
     <button class="btn primary" id="pRead"><span>Review</span></button>
@@ -263,48 +156,12 @@ Still open: Stop it happening after a power cut"></textarea></div></label>
 
 <script>
 const $ = id => document.getElementById(id);
-const NS = 'http://www.w3.org/2000/svg';
 const SECTIONS = ['Networking', 'HA', 'Proxmox'];
 const STATUS = {red: 'open', yellow: 'partly fixed', green: 'fixed'};
-const SHORT = {red: 'open', yellow: 'partly', green: 'fixed'};
 const LABELS = {problem: 'Problem', cause: 'Cause', fix: 'Fix', open: 'Still open'};
 const KEYS = {title: 'title', section: 'section', status: 'status', problem: 'problem',
               cause: 'cause', fix: 'fix', 'still open': 'open'};
-let all = [], section = 'All', status = null, query = '', current = null, nth = 0;
-
-/* ---------- hand-drawn frames ---------- */
-function frame(el, o = {}) {
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('class', o.rail ? 'rail' : 'ink');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('preserveAspectRatio', 'none');
-  const s = document.createElementNS(NS, o.rail ? 'line' : (o.round ? 'ellipse' : 'rect'));
-  if (o.rail) {
-    s.setAttribute('x1', 4); s.setAttribute('y1', 0);
-    s.setAttribute('x2', 4); s.setAttribute('y2', '100%');
-    s.setAttribute('stroke-width', 6); s.setAttribute('stroke-linecap', 'round');
-  } else if (o.round) {
-    s.setAttribute('cx', '50%'); s.setAttribute('cy', '50%');
-    s.setAttribute('rx', '49%'); s.setAttribute('ry', '49%');
-    s.setAttribute('fill', 'none'); s.setAttribute('stroke-width', o.w || 1.6);
-  } else {
-    s.setAttribute('x', 0); s.setAttribute('y', 0);
-    s.setAttribute('width', '100%'); s.setAttribute('height', '100%');
-    s.setAttribute('rx', o.rx === undefined ? 9 : o.rx);
-    s.setAttribute('fill', 'none'); s.setAttribute('stroke-width', o.w || 1.6);
-  }
-  s.setAttribute('stroke', o.color || 'var(--line)');
-  s.setAttribute('vector-effect', 'non-scaling-stroke');
-  s.setAttribute('filter', o.rail ? 'url(#rr)' : 'url(#r' + (nth++ % 3) + ')');
-  svg.append(s);
-  el.prepend(svg);
-  return svg;
-}
-const paper = el => {
-  const d = document.createElement('div');
-  d.className = 'paper';
-  el.prepend(d);
-};
+let all = [], section = 'All', query = '', current = null;
 
 /* ---------- helpers ---------- */
 const esc = s => s.replace(/[&<>]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;'}[c]));
@@ -360,34 +217,17 @@ async function load() {
 }
 
 function render() {
-  nth = 0;
-  const count = s => all.filter(t => t.status === s).length;
-  $('signals').replaceChildren(...Object.keys(STATUS).map(s => {
-    const b = document.createElement('button');
-    b.className = 'sig ' + s;
-    b.setAttribute('aria-pressed', status === s);
-    b.innerHTML = `<i class="dot"></i><span class="n">${count(s)}</span>` +
-                  `<span class="w">${SHORT[s]}</span>`;
-    frame(b, {rx: 8, color: status === s ? 'currentColor' : 'var(--faint)',
-              w: status === s ? 2 : 1.4});
-    b.onclick = () => { status = status === s ? null : s; render(); };
-    return b;
-  }));
-
   $('chips').replaceChildren(...['All', ...SECTIONS].map(s => {
     const b = document.createElement('button');
     b.className = 'chip';
     b.append(s);
     b.setAttribute('aria-pressed', section === s);
-    frame(b, {rx: 15, color: section === s ? 'var(--ink)' : 'var(--faint)',
-              w: section === s ? 2 : 1.4});
     b.onclick = () => { section = s; render(); };
     return b;
   }));
 
   const shown = all.filter(t =>
     (section === 'All' || t.section === section) &&
-    (!status || t.status === status) &&
     (!query || serial(t.id).includes(query) ||
      Object.values(KEYS).some(k => (t[k] || '').toLowerCase().includes(query))));
 
@@ -399,19 +239,30 @@ function render() {
     return;
   }
 
-  $('list').replaceChildren(...shown.map(t => {
+  const row = t => {
     const b = document.createElement('button');
     b.className = 'row ' + t.status;
     const g = gist(t);
     b.innerHTML =
-      `<div class="meta"><span><b>${serial(t.id)}</b>${esc(t.section)}</span>` +
-      `<span>opened ${rel(t.created)}</span></div>` +
-      `<h2>${esc(t.title)}</h2>` + (g ? `<p class="gist">${esc(g)}</p>` : '');
-    frame(b, {rail: true, color: 'currentColor'});
-    frame(b);
-    paper(b);
+      '<i class="dot" aria-hidden="true"></i><div class="text">' +
+      `<h2>${esc(t.title)}</h2>` +
+      `<div class="meta">${serial(t.id)} · ${esc(t.section)} · ${rel(t.created)}</div>` +
+      (g ? `<p class="gist">${esc(g)}</p>` : '') +
+      '</div><span class="chev" aria-hidden="true">›</span>';
     b.onclick = () => detail(t);
     return b;
+  };
+
+  $('list').replaceChildren(...Object.keys(STATUS).flatMap(s => {
+    const items = shown.filter(t => t.status === s);
+    if (!items.length) return [];
+    const head = document.createElement('div');
+    head.className = 'head';
+    head.textContent = `${STATUS[s][0].toUpperCase() + STATUS[s].slice(1)} · ${items.length}`;
+    const group = document.createElement('div');
+    group.className = 'group';
+    group.append(...items.map(row));
+    return [head, group];
   }));
 }
 
@@ -430,8 +281,6 @@ function detail(t) {
     b.className = s;
     b.setAttribute('aria-pressed', t.status === s);
     b.innerHTML = `<i class="dot"></i><span>${STATUS[s]}</span>`;
-    frame(b, {rx: 8, color: t.status === s ? 'currentColor' : 'var(--faint)',
-              w: t.status === s ? 2 : 1.4});
     b.onclick = () => { if (t.status !== s) save({...t, status: s}, t.id, false); };
     return b;
   }));
@@ -439,7 +288,6 @@ function detail(t) {
     `<div class="field"><h3>${LABELS[k]}</h3><div class="${k === 'open' ? 'open-note' : ''}">` +
     `<p>${code(t[k])}</p></div></div>`).join('') ||
     '<div class="field"><p style="color:var(--muted)">No notes yet. Tap Edit to add them.</p></div>';
-  for (const n of $('dFields').querySelectorAll('.open-note')) frame(n, {rx: 8});
   $('dDelete').textContent = 'Delete ticket';
   $('dDelete').dataset.armed = '';
   $('sheet').showModal();
@@ -532,14 +380,6 @@ $('pRead').onclick = () => {
 $('q').oninput = e => { query = e.target.value.trim().toLowerCase(); render(); };
 for (const d of document.querySelectorAll('dialog'))
   d.onclick = e => { if (e.target === d) d.close(); };
-
-/* frames that are drawn once */
-frame($('searchWrap'), {rx: 9});
-for (const w of document.querySelectorAll('label .wrap')) frame(w, {rx: 8, w: 1.4});
-for (const b of document.querySelectorAll('.btn')) frame(b, {rx: 9});
-for (const b of document.querySelectorAll('.btn.primary')) paper(b);
-frame($('add'), {round: true, w: 1.8, color: 'var(--ink)'});
-paper($('add'));
 
 load();
 </script>
