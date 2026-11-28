@@ -1,0 +1,19 @@
+# Local ticket data
+tickets.db
+tickets.db-*
+*.db
+
+# Editor settings
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Secrets and OS files
+.env
+*.log
+.DS_Store
